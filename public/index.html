@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#6c63ff" />
+  <title>Attendly | Student Attendance Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-icon">A</div>
+        <div>
+          <h1>Attendly</h1>
+          <span>Smart campus suite</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span> Dashboard</button>
+        <button class="nav-item" data-view="students"><span>♙</span> Students</button>
+        <button class="nav-item" data-view="attendance"><span>✓</span> Attendance</button>
+        <button class="nav-item" data-view="reports"><span>▥</span> Reports</button>
+      </nav>
+
+      <div class="sidebar-card">
+        <div class="sparkle">✦</div>
+        <h3>Stay on track</h3>
+        <p>Keep your class attendance healthy and your records organized.</p>
+        <button class="small-button" id="quickMarkBtn">Mark attendance →</button>
+      </div>
+
+      <div class="sidebar-bottom">
+        <span class="status-dot"></span>
+        System ready
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="icon-button mobile-only" id="menuBtn">☰</button>
+        <div class="welcome">
+          <span class="eyebrow">MONITOR • MANAGE • IMPROVE</span>
+          <h2 id="pageTitle">Good morning, Admin 👋</h2>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="themeBtn" title="Toggle theme">☾</button>
+          <div class="profile-chip">
+            <div class="avatar">PA</div>
+            <div><strong>Principal Admin</strong><small>Administrator</small></div>
+          </div>
+        </div>
+      </header>
+
+      <section id="dashboardView" class="view active-view">
+        <div class="hero">
+          <div>
+            <span class="pill">LIVE OVERVIEW</span>
+            <h3>Every student counts.</h3>
+            <p>Track attendance, discover patterns and make better academic decisions.</p>
+          </div>
+          <div class="hero-art"><div class="orb orb-one"></div><div class="orb orb-two"></div><span>✦</span></div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card purple"><div class="stat-top"><span>Total students</span><b>♙</b></div><strong id="totalStudents">0</strong><small>Registered in this system</small></article>
+          <article class="stat-card green"><div class="stat-top"><span>Present today</span><b>✓</b></div><strong id="presentToday">0</strong><small id="presentHint">Students present</small></article>
+          <article class="stat-card orange"><div class="stat-top"><span>Absent today</span><b>!</b></div><strong id="absentToday">0</strong><small>Follow up required</small></article>
+          <article class="stat-card blue"><div class="stat-top"><span>Average rate</span><b>↗</b></div><strong id="averageRate">0%</strong><small>Overall attendance</small></article>
+        </div>
+
+        <div class="content-grid">
+          <article class="panel trend-panel">
+            <div class="panel-heading"><div><h3>Attendance trend</h3><p>Last 7 recorded days</p></div><span class="mini-badge">Weekly</span></div>
+            <div class="chart" id="trendChart"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><h3>Today's status</h3><p>Attendance distribution</p></div></div>
+            <div class="donut-wrap"><div class="donut" id="donut"><div><strong id="donutValue">0%</strong><span>Present</span></div></div></div>
+            <div class="legend"><span><i class="legend-dot present"></i> Present <b id="legendPresent">0</b></span><span><i class="legend-dot absent"></i> Absent <b id="legendAbsent">0</b></span><span><i class="legend-dot late"></i> Late <b id="legendLate">0</b></span></div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-heading"><div><h3>Students needing attention</h3><p>Attendance below 75%</p></div><button class="text-button" data-view-target="students">View all →</button></div>
+          <div class="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Attendance</th><th>Status</th></tr></thead><tbody id="attentionTable"></tbody></table></div>
+        </article>
+      </section>
+
+      <section id="studentsView" class="view">
+        <div class="section-head"><div><span class="eyebrow">DIRECTORY</span><h3>Student directory</h3><p>Manage your student records.</p></div><button class="primary-button" id="addStudentBtn">＋ Add student</button></div>
+        <div class="toolbar"><input id="studentSearch" placeholder="Search by name or roll number..." /><select id="classFilter"><option value="all">All classes</option></select></div>
+        <article class="panel"><div class="table-wrap"><table><thead><tr><th>Student</th><th>Roll no.</th><th>Class</th><th>Attendance</th><th>Action</th></tr></thead><tbody id="studentsTable"></tbody></table></div></article>
+      </section>
+
+      <section id="attendanceView" class="view">
+        <div class="section-head"><div><span class="eyebrow">DAILY REGISTER</span><h3>Mark attendance</h3><p>Select a date and update each student's status.</p></div><button class="primary-button" id="saveAttendanceBtn">Save attendance</button></div>
+        <div class="toolbar"><label class="date-label">Date <input type="date" id="attendanceDate" /></label><input id="attendanceSearch" placeholder="Search students..." /></div>
+        <article class="panel"><div class="attendance-summary" id="attendanceSummary"></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Attendance status</th></tr></thead><tbody id="attendanceTable"></tbody></table></div></article>
+      </section>
+
+      <section id="reportsView" class="view">
+        <div class="section-head"><div><span class="eyebrow">INSIGHTS</span><h3>Attendance reports</h3><p>Review performance and export your records.</p></div><button class="primary-button" id="exportBtn">⇩ Export CSV</button></div>
+        <div class="stats-grid"><article class="stat-card purple"><span>High attendance</span><strong id="highCount">0</strong><small>75% and above</small></article><article class="stat-card orange"><span>Needs support</span><strong id="lowCount">0</strong><small>Below 75%</small></article></div>
+        <article class="panel"><div class="panel-heading"><div><h3>Student performance</h3><p>Calculated from all saved records.</p></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th></tr></thead><tbody id="reportTable"></tbody></table></div></article>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <button class="modal-close" id="closeModal">×</button>
+      <span class="eyebrow">NEW RECORD</span><h3>Add a student</h3><p>Create a student profile for your attendance register.</p>
+      <form id="studentForm">
+        <label>Full name<input required id="newName" placeholder="e.g. Arun Kumar" /></label>
+        <label>Roll number<input required id="newRoll" placeholder="e.g. IT202601" /></label>
+        <label>Class<select id="newClass"><option>IT - III Year</option><option>IT - II Year</option><option>CSE - III Year</option><option>ECE - III Year</option></select></label>
+        <button class="primary-button block" type="submit">Create student</button>
+      </form>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="script.js"></script>
+</body>
+</html>
