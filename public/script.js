@@ -1,49 +1,279 @@
+
+let currentUser = JSON.parse(localStorage.getItem("attendly_user") || "null");
+let authToken = localStorage.getItem("attendly_token");
+
+const appShell = document.querySelector(".app-shell");
+const authScreen = document.getElementById("authScreen");
+
+function showAuthenticatedApp() {
+  authScreen.hidden = true;
+    appShell.style.display = "flex";
+
+      const userName = currentUser?.name || "User";
+        const role = currentUser?.role || "student";
+
+          document.getElementById("pageTitle").textContent =
+              `Good morning, ${userName} 👋`;
+
+                document.getElementById("profileName").textContent = userName;
+                  document.getElementById("profileRole").textContent =
+                      role === "admin" ? "Administrator" : "Student";
+
+                        applyRolePermissions();
+                          refresh();
+                          }
+
+                          function showAuthScreen() {
+                            authScreen.hidden = false;
+                              appShell.style.display = "none";
+                              }
+
+                              function applyRolePermissions() {
+                                const isAdmin = currentUser?.role === "admin";
+
+                                  const addStudentBtn = document.getElementById("addStudentBtn");
+                                    const saveAttendanceBtn = document.getElementById("saveAttendanceBtn");
+                                      const exportBtn = document.getElementById("exportBtn");
+
+                                        if (addStudentBtn) addStudentBtn.style.display = isAdmin ? "" : "none";
+                                          if (saveAttendanceBtn) saveAttendanceBtn.style.display = isAdmin ? "" : "none";
+                                            if (exportBtn) exportBtn.style.display = isAdmin ? "" : "none";
+
+                                              document.querySelectorAll(".delete-student").forEach(button => {
+                                                  button.style.display = isAdmin ? "" : "none";
+                                                    });
+                                                    }
+
+                                                    async function loginUser(email, password) {
+                                                      const response = await fetch("/api/login", {
+                                                          method: "POST",
+                                                              headers: {
+                                                                    "Content-Type": "application/json"
+                                                                        },
+                                                                            body: JSON.stringify({ email, password })
+                                                                              });
+
+                                                                                const data = await response.json();
+
+                                                                                  if (!response.ok) {
+                                                                                      throw new Error(data.message || "Login failed");
+                                                                                        }
+
+                                                                                          authToken = data.token;
+                                                                                            currentUser = data.user;
+
+                                                                                              localStorage.setItem("attendly_token", authToken);
+                                                                                                localStorage.setItem("attendly_user", JSON.stringify(currentUser));
+
+                                                                                                  showAuthenticatedApp();
+                                                                                                  }
+
+                                                                                                  async function registerUser(name, email, password, role) {
+                                                                                                    const response = await fetch("/api/register", {
+                                                                                                        method: "POST",
+                                                                                                            headers: {
+                                                                                                                  "Content-Type": "application/json"
+                                                                                                                      },
+                                                                                                                          body: JSON.stringify({ name, email, password, role })
+                                                                                                                            });
+
+                                                                                                                              const data = await response.json();
+
+                                                                                                                                if (!response.ok) {
+                                                                                                                                    throw new Error(data.message || "Registration failed");
+                                                                                                                                      }
+
+                                                                                                                                        return data;
+                                                                                                                                        }
+
+                                                                                                                                        function setupAuthentication() {
+                                                                                                                                          const loginForm = document.getElementById("loginForm");
+                                                                                                                                            const registerForm = document.getElementById("registerForm");
+                                                                                                                                              const switchAuthBtn = document.getElementById("switchAuthBtn");
+                                                                                                                                                const authTitle = document.getElementById("authTitle");
+                                                                                                                                                  const authSubtitle = document.getElementById("authSubtitle");
+                                                                                                                                                    const authMessage = document.getElementById("authMessage");
+
+                                                                                                                                                      let registerMode = false;
+
+                                                                                                                                                        switchAuthBtn.onclick = () => {
+                                                                                                                                                            registerMode = !registerMode;
+
+                                                                                                                                                                loginForm.hidden = registerMode;
+                                                                                                                                                                    registerForm.hidden = !registerMode;
+
+                                                                                                                                                                        authTitle.textContent = registerMode
+                                                                                                                                                                              ? "Create your account"
+                                                                                                                                                                                    : "Welcome back 👋";
+
+                                                                                                                                                                                        authSubtitle.textContent = registerMode
+                                                                                                                                                                                              ? "Register as an admin or student."
+                                                                                                                                                                                                    : "Login to manage your attendance.";
+
+                                                                                                                                                                                                        switchAuthBtn.textContent = registerMode
+                                                                                                                                                                                                              ? "Already have an account? Login"
+                                                                                                                                                                                                                    : "Create a new account";
+
+                                                                                                                                                                                                                        authMessage.textContent = "";
+                                                                                                                                                                                                                          };
+
+                                                                                                                                                                                                                            loginForm.onsubmit = async event => {
+                                                                                                                                                                                                                                event.preventDefault();
+                                                                                                                                                                                                                                    authMessage.textContent = "Logging in...";
+
+                                                                                                                                                                                                                                        try {
+                                                                                                                                                                                                                                              await loginUser(
+                                                                                                                                                                                                                                                      document.getElementById("loginEmail").value.trim(),
+                                                                                                                                                                                                                                                              document.getElementById("loginPassword").value
+                                                                                                                                                                                                                                                                    );
+                                                                                                                                                                                                                                                                        } catch (error) {
+                                                                                                                                                                                                                                                                              authMessage.textContent = error.message;
+                                                                                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                                                                                    };
+
+                                                                                                                                                                                                                                                                                      registerForm.onsubmit = async event => {
+                                                                                                                                                                                                                                                                                          event.preventDefault();
+                                                                                                                                                                                                                                                                                              authMessage.textContent = "Creating account...";
+
+                                                                                                                                                                                                                                                                                                  try {
+                                                                                                                                                                                                                                                                                                        await registerUser(
+                                                                                                                                                                                                                                                                                                                document.getElementById("registerName").value.trim(),
+                                                                                                                                                                                                                                                                                                                        document.getElementById("registerEmail").value.trim(),
+                                                                                                                                                                                                                                                                                                                                document.getElementById("registerPassword").value,
+                                                                                                                                                                                                                                                                                                                                        document.getElementById("registerRole").value
+                                                                                                                                                                                                                                                                                                                                              );
+
+                                                                                                                                                                                                                                                                                                                                                    authMessage.textContent = "Registration successful. Please login.";
+
+                                                                                                                                                                                                                                                                                                                                                          switchAuthBtn.click();
+                                                                                                                                                                                                                                                                                                                                                                loginForm.reset();
+                                                                                                                                                                                                                                                                                                                                                                      registerForm.reset();
+                                                                                                                                                                                                                                                                                                                                                                          } catch (error) {
+                                                                                                                                                                                                                                                                                                                                                                                authMessage.textContent = error.message;
+                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                      };
+
+                                                                                                                                                                                                                                                                                                                                                                                        document.getElementById("logoutBtn").onclick = () => {
+                                                                                                                                                                                                                                                                                                                                                                                            localStorage.removeItem("attendly_token");
+                                                                                                                                                                                                                                                                                                                                                                                                localStorage.removeItem("attendly_user");
+
+                                                                                                                                                                                                                                                                                                                                                                                                    authToken = null;
+                                                                                                                                                                                                                                                                                                                                                                                                        currentUser = null;
+
+                                                                                                                                                                                                                                                                                                                                                                                                            showAuthScreen();
+                                                                                                                                                                                                                                                                                                                                                                                                              };
+                                                                                                                                                                                                                                                                                                                                                                                                              }
+
+                                                                                                                                                                                                                                                                                                                                                                                                              function initAuth() {
+                                                                                                                                                                                                                                                                                                                                                                                                                setupAuthentication();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                  if (authToken && currentUser) {
+                                                                                                                                                                                                                                                                                                                                                                                                                      showAuthenticatedApp();
+                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                            showAuthScreen();
+                                                                                                                                                                                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                                                                                                                                                                                              }
+
 const $ = (id) => document.getElementById(id);
 const today = new Date().toISOString().slice(0, 10);
-const state = {
-  students: JSON.parse(localStorage.getItem("attendly_students")) || [
-    {id:1,name:"Arun Kumar",roll:"IT202601",className:"IT - III Year"},
-    {id:2,name:"Divya Sri",roll:"IT202602",className:"IT - III Year"},
-    {id:3,name:"Karthik Raj",roll:"IT202603",className:"IT - III Year"},
-    {id:4,name:"Meena Devi",roll:"IT202604",className:"IT - III Year"},
-    {id:5,name:"Naveen S",roll:"IT202605",className:"IT - III Year"},
-    {id:6,name:"Priya M",roll:"IT202606",className:"IT - III Year"},
-    {id:7,name:"Rahul V",roll:"IT202607",className:"IT - III Year"},
-    {id:8,name:"Sanjay P",roll:"IT202608",className:"IT - III Year"}
-  ],
-  records: JSON.parse(localStorage.getItem("attendly_records")) || {},
-  currentDate: today
-};
+  
+  let savedStudents = [];
+
+  try {
+    savedStudents = JSON.parse(
+        localStorage.getItem("attendly_students") || "null"
+          );
+          } catch (error) {
+            savedStudents = [];
+            }
+
+    const savedRecords = JSON.parse(
+      localStorage.getItem("attendly_records") || "null"
+      );
+
+      const state = {
+        students: Array.isArray(savedStudents) && savedStudents.length > 0
+            ? savedStudents
+                : [
+                        { id: 1, name: "Arun Kumar", roll: "IT202601", className: "IT - III Year" },
+                                { id: 2, name: "Divya Sri", roll: "IT202602", className: "IT - III Year" },
+                                        { id: 3, name: "Karthik Raj", roll: "IT202603", className: "IT - III Year" },
+                                                { id: 4, name: "Meena Devi", roll: "IT202604", className: "IT - III Year" },
+                                                        { id: 5, name: "Naveen S", roll: "IT202605", className: "IT - III Year" },
+                                                                { id: 6, name: "Priya M", roll: "IT202606", className: "IT - III Year" },
+                                                                        { id: 7, name: "Rahul V", roll: "IT202607", className: "IT - III Year" },
+                                                                                { id: 8, name: "Sanjay P", roll: "IT202608", className: "IT - III Year" }
+                                                                                      ],
+
+                                                                                        records: savedRecords && typeof savedRecords === "object"
+                                                                                            ? savedRecords
+                                                                                                : {},
+
+                                                                                                  currentDate: new Date().toISOString().slice(0, 10)
+                                                                                    };
 
 function save() {
   localStorage.setItem("attendly_students", JSON.stringify(state.students));
   localStorage.setItem("attendly_records", JSON.stringify(state.records));
 }
 function dateKey(date=state.currentDate){return date}
-function getRecord(studentId,date=state.currentDate){return state.records[date]?.[studentId] || "Present"}
+function getRecord(studentId, date = state.currentDate) {
+    return state.records[date]?.[studentId] || "Unmarked";
+    }
+
 function setRecord(studentId,status,date=state.currentDate){
   if(!state.records[date]) state.records[date]={};
   state.records[date][studentId]=status; save();
 }
-function attendanceStats(studentId){
-  let present=0,absent=0,late=0;
-  Object.values(state.records).forEach(day=>{
-    const status=day[studentId];
-    if(status==="Present")present++;
-    if(status==="Absent")absent++;
-    if(status==="Late")late++;
-  });
-  const total=present+absent+late;
-  return {present,absent,late,total,rate:total?Math.round((present+late*.5)/total*100):100};
-}
-function todayStats(){
-  let present=0,absent=0,late=0;
-  state.students.forEach(s=>{
-    const status=getRecord(s.id);
-    if(status==="Present")present++; if(status==="Absent")absent++; if(status==="Late")late++;
-  });
-  return {present,absent,late,total:state.students.length};
-}
+function attendanceStats(studentId) {
+    let present = 0;
+      let absent = 0;
+        let late = 0;
+
+          Object.values(state.records).forEach((day) => {
+              const status = day?.[studentId];
+
+                  if (status === "Present") present++;
+                      if (status === "Absent") absent++;
+                          if (status === "Late") late++;
+                            });
+
+                              const total = present + absent + late;
+
+                                return {
+                                    present,
+                                        absent,
+                                            late,
+                                                total,
+                                                    rate: total
+                                                          ? Math.round(((present + late * 0.5) / total) * 100)
+                                                                : 0,
+                                                                  };
+                                                                  }
+
+function todayStats() {
+    let present = 0;
+      let absent = 0;
+        let late = 0;
+          let unmarked = 0;
+
+            state.students.forEach((s) => {
+                const status = getRecord(s.id);
+
+                    if (status === "Present") present++;
+                        else if (status === "Absent") absent++;
+                            else if (status === "Late") late++;
+                                else unmarked++;
+                                  });
+
+                                    return {
+                                        present,
+                                            absent,
+                                                late,
+                                                    unmarked,
+                                                        total: state.students.length,
+                                                          };
+                                                          }
 function initials(name){return name.split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase()}
 function statusBadge(rate){return `<span class="status ${rate>=75?"good":"bad"}">${rate>=75?"Healthy":"Needs support"}</span>`}
 function studentCell(s){return `<div class="student-cell"><div class="student-avatar">${initials(s.name)}</div><div><strong>${s.name}</strong><small>${s.roll}</small></div></div>`}
@@ -52,10 +282,14 @@ function classOptions(){
   $("classFilter").innerHTML='<option value="all">All classes</option>'+classes.map(c=>`<option>${c}</option>`).join("");
 }
 function renderDashboard(){
+  console.log("Students:", state.students);
+    console.log("Records:", state.records);
   const t=todayStats();
   $("totalStudents").textContent=state.students.length;
   $("presentToday").textContent=t.present;
   $("absentToday").textContent=t.absent;
+  $("presentHint").textContent =
+    `${t.present} present • ${t.unmarked} unmarked`;
   $("presentHint").textContent=`${Math.round(t.present/t.total*100||0)}% of students`;
   const rates=state.students.map(s=>attendanceStats(s.id).rate);
   $("averageRate").textContent=`${Math.round(rates.reduce((a,b)=>a+b,0)/(rates.length||1))}%`;
@@ -78,10 +312,23 @@ function renderStudents(){
 function renderAttendance(){
   const q=$("attendanceSearch").value.toLowerCase();
   const list=state.students.filter(s=>(s.name+" "+s.roll).toLowerCase().includes(q));
-  const counts={Present:0,Absent:0,Late:0};
+  const counts={Present:0,Absent:0,Late:0,Unmarked: 0};
   list.forEach(s=>counts[getRecord(s.id)]++);
   $("attendanceSummary").innerHTML=Object.entries(counts).map(([k,v])=>`<div class="summary-pill">${k}: <b>${v}</b></div>`).join("");
-  $("attendanceTable").innerHTML=list.map(s=>`<tr><td>${studentCell(s)}</td><td>${s.className}</td><td><select class="select-status attendance-select" data-id="${s.id}"><option ${getRecord(s.id)==="Present"?"selected":""}>Present</option><option ${getRecord(s.id)==="Absent"?"selected":""}>Absent</option><option ${getRecord(s.id)==="Late"?"selected":""}>Late</option></select></td></tr>`).join("");
+  $("attendanceTable").innerHTML=list.map(s=>`<tr><td>${studentCell(s)}</td><td>${s.className}</td><td><select class="select-status attendance-select" data-id="${s.id}">
+    <option value="Unmarked" ${getRecord(s.id) === "Unmarked" ? "selected" : ""}>
+        Unmarked
+          </option>
+            <option value="Present" ${getRecord(s.id) === "Present" ? "selected" : ""}>
+                Present
+                  </option>
+                    <option value="Absent" ${getRecord(s.id) === "Absent" ? "selected" : ""}>
+                        Absent
+                          </option>
+                            <option value="Late" ${getRecord(s.id) === "Late" ? "selected" : ""}>
+                                Late
+                                  </option>
+                                  </select></td></tr>`).join("");
   document.querySelectorAll(".attendance-select").forEach(sel=>sel.onchange=()=>{setRecord(sel.dataset.id,sel.value);renderAttendance();renderDashboard();});
 }
 function renderReports(){
@@ -119,4 +366,4 @@ $("exportBtn").onclick=()=>{
   const blob=new Blob([csv],{type:"text/csv"}),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download="attendance-report.csv";a.click();URL.revokeObjectURL(url);toast("CSV report exported");
 };
-refresh();
+initAuth();

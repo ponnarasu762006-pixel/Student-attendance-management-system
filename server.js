@@ -1,20 +1,158 @@
+
 const express = require("express");
 const path = require("path");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || "attendly-development-secret";
+
+const users = [];
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Attendance server is running" });
-});
+function createToken(user) {
+  return jwt.sign(
+      {
+            id: user.id,
+                  name: user.name,
+                        email: user.email,
+                              role: user.role
+                                  },
+                                      JWT_SECRET,
+                                          { expiresIn: "2h" }
+                                            );
+                                            }
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+                                            function authenticate(req, res, next) {
+                                              const header = req.headers.authorization;
+                                                const token = header && header.startsWith("Bearer ")
+                                                    ? header.split(" ")[1]
+                                                        : null;
 
-app.listen(PORT, () => {
-  console.log(`Attendance app running at http://localhost:${PORT}`);
-});
+                                                          if (!token) {
+                                                              return res.status(401).json({ message: "Login required" });
+                                                                }
+
+                                                                  try {
+                                                                      req.user = jwt.verify(token, JWT_SECRET);
+                                                                          next();
+                                                                            } catch {
+                                                                                return res.status(401).json({ message: "Invalid or expired token" });
+                                                                                  }
+                                                                                  }
+
+                                                                                  app.post("/api/register", async (req, res) => {
+                                                                                    try {
+                                                                                        const { name, email, password, role } = req.body;
+
+                                                                                            if (!name || !email || !password || !role) {
+                                                                                                  return res.status(400).json({
+                                                                                                          message: "All fields are required"
+                                                                                                                });
+                                                                                                                    }
+
+                                                                                                                        if (!["admin", "student"].includes(role)) {
+                                                                                                                              return res.status(400).json({
+                                                                                                                                      message: "Invalid role"
+                                                                                                                                            });
+                                                                                                                                                }
+
+                                                                                                                                                    if (password.length < 6) {
+                                                                                                                                                          return res.status(400).json({
+                                                                                                                                                                  message: "Password must contain at least 6 characters"
+                                                                                                                                                                        });
+                                                                                                                                                                            }
+
+                                                                                                                                                                                const normalizedEmail = email.trim().toLowerCase();
+
+                                                                                                                                                                                    if (users.some(user => user.email === normalizedEmail)) {
+                                                                                                                                                                                          return res.status(409).json({
+                                                                                                                                                                                                  message: "Email is already registered"
+                                                                                                                                                                                                        });
+                                                                                                                                                                                                            }
+
+                                                                                                                                                                                                                const hashedPassword = await bcrypt.hash(password, 10);
+
+                                                                                                                                                                                                                    const user = {
+                                                                                                                                                                                                                          id: Date.now().toString(),
+                                                                                                                                                                                                                                name: name.trim(),
+                                                                                                                                                                                                                                      email: normalizedEmail,
+                                                                                                                                                                                                                                            password: hashedPassword,
+                                                                                                                                                                                                                                                  role
+                                                                                                                                                                                                                                                      };
+
+                                                                                                                                                                                                                                                          users.push(user);
+
+                                                                                                                                                                                                                                                              res.status(201).json({
+                                                                                                                                                                                                                                                                    message: "Registration successful"
+                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                          } catch (error) {
+                                                                                                                                                                                                                                                                              res.status(500).json({
+                                                                                                                                                                                                                                                                                    message: "Registration failed"
+                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                                                          });
+
+                                                                                                                                                                                                                                                                                          app.post("/api/login", async (req, res) => {
+                                                                                                                                                                                                                                                                                            try {
+                                                                                                                                                                                                                                                                                                const { email, password } = req.body;
+
+                                                                                                                                                                                                                                                                                                    if (!email || !password) {
+                                                                                                                                                                                                                                                                                                          return res.status(400).json({
+                                                                                                                                                                                                                                                                                                                  message: "Email and password are required"
+                                                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                                                            }
+
+                                                                                                                                                                                                                                                                                                                                const user = users.find(
+                                                                                                                                                                                                                                                                                                                                      item => item.email === email.trim().toLowerCase()
+                                                                                                                                                                                                                                                                                                                                          );
+
+                                                                                                                                                                                                                                                                                                                                              if (!user || !(await bcrypt.compare(password, user.password))) {
+                                                                                                                                                                                                                                                                                                                                                    return res.status(401).json({
+                                                                                                                                                                                                                                                                                                                                                            message: "Invalid email or password"
+                                                                                                                                                                                                                                                                                                                                                                  });
+                                                                                                                                                                                                                                                                                                                                                                      }
+
+                                                                                                                                                                                                                                                                                                                                                                          const token = createToken(user);
+
+                                                                                                                                                                                                                                                                                                                                                                              res.json({
+                                                                                                                                                                                                                                                                                                                                                                                    message: "Login successful",
+                                                                                                                                                                                                                                                                                                                                                                                          token,
+                                                                                                                                                                                                                                                                                                                                                                                                user: {
+                                                                                                                                                                                                                                                                                                                                                                                                        id: user.id,
+                                                                                                                                                                                                                                                                                                                                                                                                                name: user.name,
+                                                                                                                                                                                                                                                                                                                                                                                                                        email: user.email,
+                                                                                                                                                                                                                                                                                                                                                                                                                                role: user.role
+                                                                                                                                                                                                                                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                                                                                                                                                                                                                                          });
+                                                                                                                                                                                                                                                                                                                                                                                                                                            } catch {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                res.status(500).json({
+                                                                                                                                                                                                                                                                                                                                                                                                                                                      message: "Login failed"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                          });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            });
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            app.get("/api/me", authenticate, (req, res) => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              res.json({
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                  user: req.user
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    app.get("/api/health", (req, res) => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                      res.json({
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                          status: "ok",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                              message: "Attendance server is running"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                });
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // Serve the frontend for browser routes.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                app.get("/{*splat}", (req, res) => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  res.sendFile(path.join(__dirname, "public", "index.html"));
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  });
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  app.listen(PORT, () => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    console.log(`Attendly app running at http://localhost:${PORT}`);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });
